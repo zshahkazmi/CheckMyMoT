@@ -1,0 +1,40 @@
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  vehicles  Vehicle[]
+}
+
+model Vehicle {
+  id          Int        @id @default(autoincrement())
+  registration String     @unique
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+  motRecords   MOTRecord[]
+}
+
+model MOTRecord {
+  id          Int      @id @default(autoincrement())
+  vehicleId   Int
+  date        DateTime
+  status      String
+  garageId    Int
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  garage      Garage    @relation(fields: [garageId], references: [id])
+}
+
+model Garage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String
+  motRecords MOTRecord[]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
