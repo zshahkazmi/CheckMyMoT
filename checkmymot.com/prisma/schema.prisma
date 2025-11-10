@@ -1,33 +1,5 @@
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  vehicles  Vehicle[]
-}
-
-model Vehicle {
-  id          Int        @id @default(autoincrement())
-  registration String     @unique
-  userId      Int
-  user        User       @relation(fields: [userId], references: [id])
-  motRecords   MOTRecord[]
-}
-
-model MOTRecord {
-  id          Int      @id @default(autoincrement())
-  vehicleId   Int
-  date        DateTime
-  status      String
-  garageId    Int
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
-  garage      Garage    @relation(fields: [garageId], references: [id])
-}
-
-model Garage {
-  id        Int      @id @default(autoincrement())
-  name      String
-  address   String
-  motRecords MOTRecord[]
+generator client {
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -35,6 +7,124 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+enum Role {
+  USER
+  GARAGE
+  ADMIN
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String?
+  email         String?       @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role          @default(USER)
+  password      String?
+
+  accounts Account[]
+  sessions Session[]
+  vehicles Vehicle[]
+  garage   Garage?
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Vehicle {
+  id        String       @id @default(cuid())
+  reg       String       @unique
+  make      String
+  model     String
+  year      Int
+  userId    String
+  garageId  String?
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  garage    Garage?      @relation(fields: [garageId], references: [id])
+  motRecords MOTRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MOTRecord {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  date        DateTime
+  result      String
+  advisories  String?
+  mileage     Int?
+  testerNotes String?
+  garageId    String?
+  vehicle     Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  garage      Garage? @relation(fields: [garageId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Garage {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  contact   String?
+  location  String?
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicles  Vehicle[]
+  motRecords MOTRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  message    String
+  read       Boolean  @default(false)
+  notifyAt   DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -1,26 +1,16 @@
-import React from 'react';
-import { useSession } from 'next-auth/react';
-import MotCard from '@/components/MotCard';
-import SearchForm from '@/components/SearchForm';
+import { redirect } from 'next/navigation'
+import { getServerAuthSession } from '@/lib/auth'
 
-const DashboardPage = () => {
-  const { data: session } = useSession();
+export default async function DashboardRootPage() {
+  const session = await getServerAuthSession()
 
-  if (!session) {
-    return (
-      <div>
-        <h1>Please log in to access your dashboard</h1>
-      </div>
-    );
+  if (!session?.user) {
+    redirect('/signin')
   }
 
-  return (
-    <div>
-      <h1>Welcome to your Dashboard, {session.user.name}!</h1>
-      <SearchForm />
-      <MotCard />
-    </div>
-  );
-};
+  if (session.user.role === 'GARAGE' || session.user.role === 'ADMIN') {
+    redirect('/dashboard/garage')
+  }
 
-export default DashboardPage;
+  redirect('/dashboard/user')
+}

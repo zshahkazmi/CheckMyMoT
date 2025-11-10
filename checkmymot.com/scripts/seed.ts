@@ -1,78 +1,90 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client'
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
 async function main() {
-    // Seed Users
-    const user1 = await prisma.user.create({
-        data: {
-            name: 'John Doe',
-            email: 'john@example.com',
-            password: 'password123', // In a real application, ensure to hash passwords
-        },
-    });
+  await prisma.notification.deleteMany()
+  await prisma.mOTRecord.deleteMany()
+  await prisma.vehicle.deleteMany()
+  await prisma.garage.deleteMany()
+  await prisma.account.deleteMany()
+  await prisma.session.deleteMany()
+  await prisma.user.deleteMany()
 
-    const user2 = await prisma.user.create({
-        data: {
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            password: 'password123', // In a real application, ensure to hash passwords
-        },
-    });
+  const owner = await prisma.user.create({
+    data: {
+      name: 'Olivia Owner',
+      email: 'owner@example.com',
+      role: Role.USER
+    }
+  })
 
-    // Seed Vehicles
-    const vehicle1 = await prisma.vehicle.create({
-        data: {
-            registrationNumber: 'ABC1234',
-            ownerId: user1.id,
-        },
-    });
+  const garageUser = await prisma.user.create({
+    data: {
+      name: 'Graham Garage',
+      email: 'garage@example.com',
+      role: Role.GARAGE
+    }
+  })
 
-    const vehicle2 = await prisma.vehicle.create({
-        data: {
-            registrationNumber: 'XYZ5678',
-            ownerId: user2.id,
-        },
-    });
+  const garage = await prisma.garage.create({
+    data: {
+      name: 'High Street MOT Centre',
+      email: 'garage@example.com',
+      contact: '01234 555000',
+      location: 'Manchester',
+      userId: garageUser.id
+    }
+  })
 
-    // Seed MOT Records
-    await prisma.mOTRecord.createMany({
-        data: [
-            {
-                vehicleId: vehicle1.id,
-                date: new Date('2023-01-01'),
-                status: 'Passed',
-            },
-            {
-                vehicleId: vehicle2.id,
-                date: new Date('2023-02-01'),
-                status: 'Failed',
-            },
-        ],
-    });
+  const vehicle = await prisma.vehicle.create({
+    data: {
+      reg: 'AB12CDE',
+      make: 'Ford',
+      model: 'Focus ST',
+      year: 2019,
+      userId: owner.id,
+      garageId: garage.id,
+      motRecords: {
+        create: [
+          {
+            date: new Date('2023-11-18'),
+            result: 'PASS',
+            advisories: 'Monitor rear brake pad wear',
+            mileage: 23500,
+            testerNotes: 'Vehicle presented in excellent condition',
+            garageId: garage.id
+          },
+          {
+            date: new Date('2022-11-10'),
+            result: 'PASS',
+            advisories: 'Slight play in track rod end',
+            mileage: 17800,
+            testerNotes: 'Advisory issued to driver',
+            garageId: garage.id
+          }
+        ]
+      }
+    }
+  })
 
-    // Seed Garages
-    await prisma.garage.createMany({
-        data: [
-            {
-                name: 'Garage A',
-                location: 'Location A',
-            },
-            {
-                name: 'Garage B',
-                location: 'Location B',
-            },
-        ],
-    });
+  await prisma.notification.create({
+    data: {
+      userId: owner.id,
+      title: 'MOT due soon',
+      message: 'Book your Ford Focus for its next MOT to stay compliant.',
+      notifyAt: new Date()
+    }
+  })
 
-    console.log('Seeding completed.');
+  console.log('Seed completed with users:', owner.email, garageUser.email, 'and vehicle', vehicle.reg)
 }
 
 main()
-    .catch(e => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+  .catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
+  })
